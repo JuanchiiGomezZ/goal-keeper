@@ -32,37 +32,70 @@ class Ball {
    * Lanza el balón con una velocidad y dirección específicas
    * @param {Object} options - Opciones del lanzamiento
    */
+  /**
+   * Lanza el balón con una velocidad y dirección específicas
+   * @param {Object} options - Opciones del lanzamiento
+   */
   shoot(options = {}) {
+    console.log("Método shoot de Ball iniciado");
+
     // Valores por defecto del lanzamiento
     const defaults = {
-      speed: 25, // Velocidad base
+      speed: 25,
       direction: {
-        // Dirección normalizada
-        x: 0, // Componente horizontal (0 = centro)
-        y: 0, // Componente vertical
-        z: 1, // Componente de profundidad (1 = hacia la portería/cámara)
+        x: 0,
+        y: 0,
+        z: 1,
       },
       curve: {
-        // Efecto de curva
-        x: (Math.random() - 0.5) * 0.3, // Curva horizontal (-0.15 a 0.15)
-        y: (Math.random() - 0.5) * 0.2, // Curva vertical (-0.1 a 0.1)
+        x: (Math.random() - 0.5) * 0.3,
+        y: (Math.random() - 0.5) * 0.2,
       },
       wobble: {
-        // Bamboleo aleatorio
-        x: Math.random() * 0.4, // Intensidad horizontal (0 a 0.4)
-        y: Math.random() * 0.4, // Intensidad vertical (0 a 0.4)
+        x: Math.random() * 0.4,
+        y: Math.random() * 0.4,
       },
-      spin: Math.random() * 2 * Math.PI, // Ángulo inicial de rotación
+      spin: Math.random() * 2 * Math.PI,
       startPosition: {
-        // Posición inicial
-        x: this.gameArea.clientWidth / 2, // Centro horizontal
-        y: this.gameArea.clientHeight / 2, // Centro vertical
-        z: -2000, // Lejos de la portería (negativo porque viene hacia nosotros)
+        x: this.gameArea.clientWidth / 2,
+        y: this.gameArea.clientHeight / 2,
+        z: -2000,
       },
     };
 
     // Combinar opciones por defecto con las proporcionadas
-    const settings = { ...defaults, ...options };
+    // IMPORTANTE: Usamos Object.assign en lugar de spread operator para evitar recursiones
+    const settings = Object.assign({}, defaults);
+    if (options.speed !== undefined) settings.speed = options.speed;
+    if (options.direction) {
+      settings.direction = Object.assign({}, settings.direction);
+      if (options.direction.x !== undefined)
+        settings.direction.x = options.direction.x;
+      if (options.direction.y !== undefined)
+        settings.direction.y = options.direction.y;
+      if (options.direction.z !== undefined)
+        settings.direction.z = options.direction.z;
+    }
+    if (options.curve) {
+      settings.curve = Object.assign({}, settings.curve);
+      if (options.curve.x !== undefined) settings.curve.x = options.curve.x;
+      if (options.curve.y !== undefined) settings.curve.y = options.curve.y;
+    }
+    if (options.wobble) {
+      settings.wobble = Object.assign({}, settings.wobble);
+      if (options.wobble.x !== undefined) settings.wobble.x = options.wobble.x;
+      if (options.wobble.y !== undefined) settings.wobble.y = options.wobble.y;
+    }
+    if (options.spin !== undefined) settings.spin = options.spin;
+    if (options.startPosition) {
+      settings.startPosition = Object.assign({}, settings.startPosition);
+      if (options.startPosition.x !== undefined)
+        settings.startPosition.x = options.startPosition.x;
+      if (options.startPosition.y !== undefined)
+        settings.startPosition.y = options.startPosition.y;
+      if (options.startPosition.z !== undefined)
+        settings.startPosition.z = options.startPosition.z;
+    }
 
     // Asegurarse de que this.effect esté inicializado correctamente
     if (!this.effect) {
@@ -75,13 +108,17 @@ class Ball {
     }
 
     // Asignar los efectos
-    this.effect.curve = settings.curve || { x: 0, y: 0 };
-    this.effect.wobble = settings.wobble || { x: 0, y: 0 };
-    this.effect.spin = settings.spin || 0;
+    this.effect.curve.x = settings.curve.x;
+    this.effect.curve.y = settings.curve.y;
+    this.effect.wobble.x = settings.wobble.x;
+    this.effect.wobble.y = settings.wobble.y;
+    this.effect.spin = settings.spin;
     this.effect.phase = 0;
 
     // Establecer posición inicial
-    this.position = { ...settings.startPosition };
+    this.position.x = settings.startPosition.x;
+    this.position.y = settings.startPosition.y;
+    this.position.z = settings.startPosition.z;
 
     // Normalizar dirección (vector unitario)
     const dirMagnitude = Math.sqrt(
@@ -97,22 +134,31 @@ class Ball {
     };
 
     // Calcular velocidad
-    this.velocity = {
-      x: normalizedDir.x * settings.speed,
-      y: normalizedDir.y * settings.speed,
-      z: normalizedDir.z * settings.speed,
-    };
+    this.velocity.x = normalizedDir.x * settings.speed;
+    this.velocity.y = normalizedDir.y * settings.speed;
+    this.velocity.z = normalizedDir.z * settings.speed;
 
     // Activar el balón
     this.isActive = true;
     this.isSaved = false;
     this.isGoal = false;
+    this.isProcessed = false;
 
     // Mostrar el balón
     this.element.style.display = "block";
 
     // Actualizar visualización
     this.updateVisual();
+
+    console.log(
+      `Balón configurado: pos=(${this.position.x.toFixed(
+        0
+      )},${this.position.y.toFixed(0)},${this.position.z.toFixed(
+        0
+      )}), velocidad=(${this.velocity.x.toFixed(2)},${this.velocity.y.toFixed(
+        2
+      )},${this.velocity.z.toFixed(2)})`
+    );
   }
 
   /**
@@ -120,12 +166,20 @@ class Ball {
    * @returns {boolean} true si el balón está activo, false si ha salido de los límites
    */
   update() {
-    if (!this.isActive) return false;
+    if (!this.isActive) {
+      return false;
+    }
+
+    console.log(
+      `Actualizando posición: (${this.position.x.toFixed(
+        0
+      )}, ${this.position.y.toFixed(0)}, ${this.position.z.toFixed(0)})`
+    );
 
     // Incrementar fase de efecto
     this.effect.phase += 0.05;
 
-    // Aplicar efectos de curva (aumenta con el tiempo)
+    // Aplicar efectos de curva
     const curveFactorX =
       this.effect.curve.x * (Math.abs(this.position.z) / 1000);
     const curveFactorY =
@@ -135,21 +189,21 @@ class Ball {
     this.velocity.x += curveFactorX;
     this.velocity.y += curveFactorY;
 
-    // Aplicar bamboleo aleatorio (efecto sinusoidal)
+    // Aplicar bamboleo aleatorio
     const wobbleX = Math.sin(this.effect.phase * 3) * this.effect.wobble.x;
     const wobbleY = Math.cos(this.effect.phase * 2) * this.effect.wobble.y;
 
-    // Aplicar velocidad a la posición (incluyendo bamboleo)
+    // Aplicar velocidad a la posición
     this.position.x += this.velocity.x + wobbleX;
     this.position.y += this.velocity.y + wobbleY;
     this.position.z += this.velocity.z;
 
-    // Aplicar gravedad a la velocidad vertical (aumenta con la distancia)
+    // Aplicar gravedad
     const gravityFactor =
       1 + (Math.abs(this.initialZ) - Math.abs(this.position.z)) / 2000;
     this.velocity.y += this.gravity * gravityFactor;
 
-    // Aplicar rotación visual al balón
+    // Rotar balón
     this.effect.spin += 0.05;
     this.element.style.transform = `translate(-50%, -50%) rotate(${
       (this.effect.spin * 180) / Math.PI
@@ -157,9 +211,12 @@ class Ball {
 
     // Verificar si el balón ha pasado la línea de gol (z > 0)
     if (this.position.z >= 0) {
+      console.log("Balón llegó a línea de gol, Z: " + this.position.z);
+
       // Si no ha sido atajado, es gol
       if (!this.isSaved) {
         this.isGoal = true;
+        console.log("¡GOL CONFIRMADO!");
       }
 
       // El balón ya no está activo
@@ -167,11 +224,10 @@ class Ball {
       return false;
     }
 
-    // Si el balón sale completamente de los límites laterales o superiores/inferiores
-    // sumando un margen para que no desaparezca demasiado pronto
+    // Verificar si el balón sale de los límites (con valores más permisivos)
     const gameWidth = this.gameArea.clientWidth;
     const gameHeight = this.gameArea.clientHeight;
-    const margin = 100; // margen para que no desaparezca de inmediato
+    const margin = 300; // Margen grande para evitar falsa detección
 
     if (
       this.position.x < -this.radius - margin ||
@@ -179,6 +235,11 @@ class Ball {
       this.position.y < -this.radius - margin ||
       this.position.y > gameHeight + this.radius + margin
     ) {
+      console.log(
+        `Balón fuera de límites: (${this.position.x.toFixed(
+          0
+        )}, ${this.position.y.toFixed(0)}, ${this.position.z.toFixed(0)})`
+      );
       this.isActive = false;
       return false;
     }
@@ -200,13 +261,12 @@ class Ball {
     // Mostrar el balón
     this.element.style.display = "block";
 
-    // Calcular tamaño basado en profundidad (efecto perspectiva)
-    // Cuanto más cerca (z más grande), más grande se ve el balón
-    const maxSize = 150; // Tamaño máximo que puede tener el balón
-    const minSize = 20; // Tamaño mínimo (cuando está lejos)
-    const distanceRange = Math.abs(this.initialZ); // Rango total de distancia
+    // Calcular tamaño basado en profundidad
+    const maxSize = 150; // Tamaño máximo (cerca)
+    const minSize = 20; // Tamaño mínimo (lejos)
+    const distanceRange = Math.abs(this.initialZ);
 
-    // Calcular tamaño según distancia - relación no lineal para efecto más dramático
+    // Calcular tamaño según distancia - relación no lineal
     const normalizedDist = 1 - Math.abs(this.position.z) / distanceRange;
     const size =
       minSize + normalizedDist * normalizedDist * (maxSize - minSize);
@@ -219,6 +279,14 @@ class Ball {
 
     // Actualizar radio para colisiones
     this.radius = size / 2;
+
+    console.log(
+      `Visualización: pos=(${this.position.x.toFixed(
+        0
+      )},${this.position.y.toFixed(0)},${this.position.z.toFixed(
+        0
+      )}), tamaño=${size.toFixed(0)}px`
+    );
   }
 
   /**

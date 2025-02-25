@@ -35,8 +35,8 @@ class Game {
       shotsPerRound: 4,
       maxRounds: 3,
       timeBetweenShots: 3000, // 3 segundos
-      initialDifficulty: 0.5,
-      difficultyIncrement: 0.2,
+      initialDifficulty: 0.7,
+      difficultyIncrement: 0.5,
     };
 
     // Estado del juego
@@ -56,6 +56,21 @@ class Game {
     // Timers
     this.gameLoop = null;
     this.shootTimer = null;
+
+    this.sounds = {
+      goalShout: new Audio("assets/sounds/goal-shout.mp3"),
+      kick: new Audio("assets/sounds/kick.mp3"),
+      whistle: new Audio("assets/sounds/referee-whistle.mp3"),
+      ambient: new Audio("assets/sounds/stadium-ambient.mp3"),
+      saved: new Audio("assets/sounds/saved.mp3"),
+      onichan: new Audio("assets/sounds/onichan.mp3"),
+    };
+
+    // Configurar sonido ambiente para que se repita
+    this.sounds.ambient.loop = true;
+    this.sounds.ambient.volume = 0.4; // Volumen más bajo para el sonido de fondo
+
+    setInterval(() => this.checkGameState(), 5000);
 
     // Inicializar eventos
     this.initEvents();
@@ -104,6 +119,20 @@ class Game {
   }
 
   /**
+   * Reproduce un sonido
+   * @param {string} soundName - Nombre del sonido a reproducir
+   */
+  playSound(soundName) {
+    if (this.sounds[soundName]) {
+      // Reiniciar el sonido si ya estaba reproduciéndose
+      this.sounds[soundName].currentTime = 0;
+      this.sounds[soundName].play().catch((e) => {
+        console.log(`Error al reproducir sonido ${soundName}:`, e);
+      });
+    }
+  }
+
+  /**
    * Inicia el juego
    */
   startGame() {
@@ -121,6 +150,12 @@ class Game {
     // Iniciar estado de juego
     this.state.isPlaying = true;
 
+    // Iniciar sonido ambiental
+    this.playSound("ambient");
+
+    // Reproducir silbato de inicio
+    this.playSound("whistle");
+
     // Iniciar bucle de juego
     this.startGameLoop();
 
@@ -136,9 +171,16 @@ class Game {
 
     this.state.isPlaying = false;
 
+    this.sounds.ambient.pause();
+
     // Detener timers
     clearInterval(this.gameLoop);
     clearTimeout(this.shootTimer);
+
+    // Detener actualización del portero (si lo has añadido)
+    // if (this.goalkeeper.stopUpdateLoop) {
+    //   this.goalkeeper.stopUpdateLoop();
+    // }
 
     // Mostrar menú de pausa (podríamos añadir uno específico)
     this.gameMenu.classList.remove("hidden");
@@ -155,6 +197,10 @@ class Game {
     // Ocultar menú
     this.gameMenu.classList.add("hidden");
 
+    this.sounds.ambient
+      .play()
+      .catch((e) => console.log("Error al reanudar audio:", e));
+
     // Reiniciar bucle
     this.startGameLoop();
 
@@ -169,7 +215,7 @@ class Game {
    */
   endGame() {
     this.state.isPlaying = false;
-
+    this.sounds.ambient.pause();
     // Detener timers
     clearInterval(this.gameLoop);
     clearTimeout(this.shootTimer);
@@ -208,6 +254,8 @@ class Game {
    * Inicia el bucle principal del juego
    */
   startGameLoop() {
+    console.log("Iniciando bucle de juego");
+
     // Detener bucle anterior si existe
     if (this.gameLoop) {
       clearInterval(this.gameLoop);
@@ -215,28 +263,31 @@ class Game {
 
     // Crear nuevo bucle
     this.gameLoop = setInterval(() => {
-      // Actualizar balón
-      const ballActive = this.ball.update();
+      // Verificar estado del balón
+      console.log(`Estado del balón: activo=${this.ball.isActive}`);
 
-      // Comprobar colisiones si el balón está activo
-      if (ballActive) {
-        this.collisionManager.checkCollisions(this.ball, this.goalkeeper);
-      } else if (
-        this.ball.isActive === false &&
-        !this.ball.isStopped() &&
-        !this.ball.isScored()
-      ) {
-        // El balón salió sin ser atajado ni entrar en la portería
-        this.processShotResult(false, false);
-      }
+      if (this.ball.isActive) {
+        // Actualizar balón
+        const stillActive = this.ball.update();
 
-      // Verificar si el balón fue atajado o fue gol
-      if (this.ball.isStopped()) {
-        // Atajada
-        this.processShotResult(true, false);
-      } else if (this.ball.isScored()) {
-        // Gol
-        this.processShotResult(false, true);
+        // Comprobar colisiones si el balón está activo
+        if (stillActive) {
+          this.collisionManager.checkCollisions(this.ball, this.goalkeeper);
+        } else {
+          // El balón ya no está activo, verificar resultado
+          console.log("Balón ya no activo, verificando resultado");
+
+          if (this.ball.isScored()) {
+            console.log("¡GOL!");
+            this.processShotResult(false, true);
+          } else if (this.ball.isStopped()) {
+            console.log("¡ATAJADA!");
+            this.processShotResult(true, false);
+          } else {
+            console.log("FUERA");
+            this.processShotResult(false, false);
+          }
+        }
       }
     }, 16); // ~60 FPS
   }
@@ -252,13 +303,16 @@ class Game {
 
     // Verificar si hemos alcanzado el límite de tiros para la ronda
     if (this.state.currentShot >= this.state.totalShots) {
+      console.log("Fin de ronda, avanzando a siguiente ronda");
       this.advanceRound();
       return;
     }
 
     // Incrementar contador de tiros
     this.state.currentShot++;
-
+    console.log(
+      `Programando tiro ${this.state.currentShot}/${this.state.totalShots}`
+    );
     // Actualizar UI
     this.updateUI();
 
@@ -287,6 +341,8 @@ class Game {
     // 0.15 en ronda 1, 0.1 en ronda 2, 0.05 en ronda 3
     this.goalkeeper.movementSpeed = 0.2 - this.state.difficulty * 0.1;
 
+    this.playSound("whistle");
+
     // Actualizar UI
     this.updateUI();
 
@@ -297,64 +353,35 @@ class Game {
   /**
    * Ejecuta un tiro
    */
+  /**
+   * Ejecuta un tiro con variabilidad
+   */
   shoot() {
+    console.log("Game.shoot(): Iniciando disparo");
+
     // Reiniciar balón
     this.ball.reset();
 
     // Calcular parámetros del tiro según dificultad
-    const speed = 20 + this.state.difficulty * 10; // Velocidad base entre 20 y 30
-
-    // Tipo de tiro (para añadir variedad)
-    const shotTypes = [
-      // Tiro recto (poca curva)
-      {
-        curveIntensity: 0.1,
-        wobbleIntensity: 0.1,
-        speedVariation: 1,
-      },
-      // Tiro con efecto (mucha curva, menos predecible)
-      {
-        curveIntensity: 0.8,
-        wobbleIntensity: 0.3,
-        speedVariation: 1.1,
-      },
-      // Tiro bombeado (más lento con mucho bamboleo)
-      {
-        curveIntensity: 0.3,
-        wobbleIntensity: 0.6,
-        speedVariation: 0.9,
-      },
-      // Tiro potente (rápido con algo de efecto)
-      {
-        curveIntensity: 0.4,
-        wobbleIntensity: 0.2,
-        speedVariation: 1.3,
-      },
-    ];
-
-    // Elegir tipo de tiro aleatorio (con preferencia por tiros más difíciles según nivel)
-    const typeIndex = Math.min(
-      Math.floor(Math.random() * shotTypes.length + this.state.difficulty),
-      shotTypes.length - 1
-    );
-    const shotType = shotTypes[typeIndex];
+    const speed = 15 + this.state.difficulty * 15; // Velocidad base entre 15 y 35
 
     // Dimensiones del área de juego
     const gameWidth = this.gameArea.clientWidth;
     const gameHeight = this.gameArea.clientHeight;
 
-    // Calcular posición inicial del balón (lejos)
-    const randomOffsetX = (Math.random() - 0.5) * 300; // Desviación horizontal
-    const randomOffsetY = (Math.random() - 0.5) * 200; // Desviación vertical
+    // Calcular posición inicial del balón con variabilidad
+    const randomOffsetX = (Math.random() - 0.5) * 200; // Desviación horizontal
+    const randomOffsetY = (Math.random() - 0.5) * 150; // Desviación vertical
 
     const startX = gameWidth / 2 + randomOffsetX;
     const startY = gameHeight / 2 + randomOffsetY;
     const startZ = -2000; // Lejos (hacia fuera de la pantalla)
 
-    // Calcular punto destino (ligeramente aleatorio dentro del marco del arco)
-    // Para la nueva perspectiva, el destino es más cerca de la cámara
-    const targetX = gameWidth / 2 + (Math.random() - 0.5) * 300;
-    const targetY = gameHeight / 2 + (Math.random() - 0.5) * 200;
+    // Calcular punto destino con variabilidad (dentro del arco)
+    // La variabilidad aumenta con la dificultad
+    const targetVariation = 100 + this.state.difficulty * 100;
+    const targetX = gameWidth / 2 + (Math.random() - 0.5) * targetVariation;
+    const targetY = gameHeight / 2 + (Math.random() - 0.5) * targetVariation;
     const targetZ = 200; // Punto detrás de la cámara
 
     // Vector dirección
@@ -362,35 +389,47 @@ class Game {
     const dirY = targetY - startY;
     const dirZ = targetZ - startZ;
 
-    // Calcular efectos según tipo de tiro
-    const curveX = (Math.random() - 0.5) * shotType.curveIntensity;
-    const curveY = (Math.random() - 0.5) * shotType.curveIntensity;
-    const wobbleX = Math.random() * shotType.wobbleIntensity;
-    const wobbleY = Math.random() * shotType.wobbleIntensity;
-    const finalSpeed = speed * shotType.speedVariation;
+    // Efectos según dificultad
+    const curveIntensity = 0.05 + this.state.difficulty * 0.15; // 0.05 a 0.20
+    const wobbleIntensity = 0.05 + this.state.difficulty * 0.15; // 0.05 a 0.20
 
-    // Ejecutar tiro
-    this.ball.shoot({
-      speed: finalSpeed,
+    // Crear objeto de opciones explícitamente para evitar recursión
+    const shootOptions = {
+      speed: speed,
       direction: {
         x: dirX,
         y: dirY,
         z: dirZ,
       },
       curve: {
-        x: curveX,
-        y: curveY,
+        x: (Math.random() - 0.5) * curveIntensity,
+        y: (Math.random() - 0.5) * curveIntensity,
       },
       wobble: {
-        x: wobbleX,
-        y: wobbleY,
+        x: Math.random() * wobbleIntensity,
+        y: Math.random() * wobbleIntensity,
       },
+      spin: Math.random() * 2 * Math.PI,
       startPosition: {
         x: startX,
         y: startY,
         z: startZ,
       },
-    });
+    };
+
+    // Ejecutar tiro
+    this.ball.shoot(shootOptions);
+
+    console.log(
+      `Disparo ejecutado hacia (${targetX.toFixed(0)}, ${targetY.toFixed(
+        0
+      )}) con velocidad ${speed.toFixed(1)}`
+    );
+
+    // Reproducir sonido de patada
+    if (this.sounds && this.sounds.kick) {
+      this.playSound("kick");
+    }
   }
 
   /**
@@ -398,28 +437,55 @@ class Game {
    * @param {boolean} saved - true si fue atajado
    * @param {boolean} goal - true si fue gol
    */
+  /**
+   * Procesa el resultado de un tiro
+   * @param {boolean} saved - true si fue atajado
+   * @param {boolean} goal - true si fue gol
+   */
   processShotResult(saved, goal) {
-    // Evitar procesar múltiples veces
-    if (
-      !this.ball.isActive &&
-      (this.ball.isStopped() || this.ball.isScored())
-    ) {
-      // Actualizar contadores
-      if (saved) {
-        this.state.saves++;
-        this.state.scores.home++;
-        this.homeScore.textContent = this.state.scores.home;
-      } else if (goal) {
-        this.state.scores.away++;
-        this.awayScore.textContent = this.state.scores.away;
+    // Verificar que no procesemos el mismo tiro múltiples veces
+    if (this.ball.isProcessed) return;
+    this.ball.isProcessed = true;
+
+    // Actualizar contadores
+    if (saved) {
+      this.state.saves++;
+      this.state.scores.home++;
+      this.homeScore.textContent = this.state.scores.home;
+      console.log("¡ATAJADA! Puntos para el portero");
+
+      // Añadir efecto visual al marcador
+      this.homeScore.classList.add("score-flash");
+      setTimeout(() => {
+        this.homeScore.classList.remove("score-flash");
+      }, 1000);
+    } else if (goal) {
+      this.state.scores.away++;
+      this.awayScore.textContent = this.state.scores.away;
+
+      // Reproducir sonido de gol
+      if (this.sounds && this.sounds.goalShout) {
+        this.playSound("goalShout");
       }
 
-      // Reiniciar balón
-      this.ball.reset();
+      console.log("¡GOL! Punto para el rival");
 
-      // Programar siguiente tiro
-      this.scheduleNextShot();
+      // Añadir efecto visual al marcador
+      this.awayScore.classList.add("score-flash");
+      setTimeout(() => {
+        this.awayScore.classList.remove("score-flash");
+      }, 1000);
+    } else {
+      console.log("Balón fuera - no suma puntos");
     }
+
+    // Actualizar UI
+    this.updateUI();
+
+    // Programar siguiente tiro con un pequeño retraso
+    setTimeout(() => {
+      this.scheduleNextShot();
+    }, 1000);
   }
 
   /**
@@ -466,6 +532,15 @@ class Game {
 
     // Mostrar menú principal
     this.showMenu();
+  }
+
+  checkGameState() {
+    if (!this.state.isPlaying) return;
+
+    if (!this.ball.isActive && !this.shootTimer) {
+      console.log("Recuperando estado del juego - programando nuevo disparo");
+      this.scheduleNextShot();
+    }
   }
 }
 // Iniciar el juego cuando el DOM esté completamente cargado
