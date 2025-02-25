@@ -95,9 +95,9 @@ class Game {
     this.gameMenu.classList.add("hidden");
     this.gameOverScreen.classList.add("hidden");
 
-    // Establecer nombres de equipos
-    this.homeTeam.textContent = "Home";
-    this.awayTeam.textContent = "Away";
+    // Establecer nombres de equipos (equipos reales para mayor inmersión)
+    this.homeTeam.textContent = "Bayern";
+    this.awayTeam.textContent = "Barcelona";
 
     // Actualizar UI
     this.updateUI();
@@ -282,47 +282,93 @@ class Game {
     this.ball.reset();
 
     // Calcular parámetros del tiro según dificultad
-    const speed = 20 + this.state.difficulty * 10; // Velocidad entre 20 y 30 (aumentada)
+    const speed = 20 + this.state.difficulty * 10; // Velocidad base entre 20 y 30
 
-    // Dirección aleatoria dentro de la portería
+    // Tipo de tiro (para añadir variedad)
+    const shotTypes = [
+      // Tiro recto (poca curva)
+      {
+        curveIntensity: 0.1,
+        wobbleIntensity: 0.1,
+        speedVariation: 1,
+      },
+      // Tiro con efecto (mucha curva, menos predecible)
+      {
+        curveIntensity: 0.8,
+        wobbleIntensity: 0.3,
+        speedVariation: 1.1,
+      },
+      // Tiro bombeado (más lento con mucho bamboleo)
+      {
+        curveIntensity: 0.3,
+        wobbleIntensity: 0.6,
+        speedVariation: 0.9,
+      },
+      // Tiro potente (rápido con algo de efecto)
+      {
+        curveIntensity: 0.4,
+        wobbleIntensity: 0.2,
+        speedVariation: 1.3,
+      },
+    ];
+
+    // Elegir tipo de tiro aleatorio (con preferencia por tiros más difíciles según nivel)
+    const typeIndex = Math.min(
+      Math.floor(Math.random() * shotTypes.length + this.state.difficulty),
+      shotTypes.length - 1
+    );
+    const shotType = shotTypes[typeIndex];
+
+    // Dimensiones del área de juego
     const gameWidth = this.gameArea.clientWidth;
     const gameHeight = this.gameArea.clientHeight;
-    const goalPost = document.getElementById("goal-area");
-    const goalRect = goalPost.getBoundingClientRect();
-    const gameRect = this.gameArea.getBoundingClientRect();
 
-    // Convertir coordenadas absolutas a relativas al juego
-    const goalLeft = goalRect.left - gameRect.left;
-    const goalRight = goalRect.right - gameRect.left;
-    const goalTop = goalRect.top - gameRect.top;
-    const goalBottom = goalRect.bottom - gameRect.top;
+    // Calcular posición inicial del balón (lejos)
+    const randomOffsetX = (Math.random() - 0.5) * 300; // Desviación horizontal
+    const randomOffsetY = (Math.random() - 0.5) * 200; // Desviación vertical
 
-    // Punto aleatorio dentro de la portería (preferencia por el centro)
-    const targetX = goalLeft + Math.random() * (goalRight - goalLeft);
-    const targetY =
-      goalTop + (0.3 + Math.random() * 0.4) * (goalBottom - goalTop); // Más hacia el centro
+    const startX = gameWidth / 2 + randomOffsetX;
+    const startY = gameHeight / 2 + randomOffsetY;
+    const startZ = -2000; // Lejos (hacia fuera de la pantalla)
 
-    // Punto de inicio (desde abajo de la pantalla, como en la imagen)
-    const startX = gameWidth / 2 + (Math.random() - 0.5) * 100; // Menos variación horizontal
-    const startY = gameHeight * 0.8; // Desde la parte inferior (como un tiro libre)
+    // Calcular punto destino (ligeramente aleatorio dentro del marco del arco)
+    // Para la nueva perspectiva, el destino es más cerca de la cámara
+    const targetX = gameWidth / 2 + (Math.random() - 0.5) * 300;
+    const targetY = gameHeight / 2 + (Math.random() - 0.5) * 200;
+    const targetZ = 200; // Punto detrás de la cámara
 
-    // Calcular dirección hacia el punto objetivo
+    // Vector dirección
     const dirX = targetX - startX;
-    const dirY = targetY - startY - 100; // Ajuste para compensar la gravedad
-    const dirZ = -this.ball.initialZ; // Distancia desde inicio a portería
+    const dirY = targetY - startY;
+    const dirZ = targetZ - startZ;
+
+    // Calcular efectos según tipo de tiro
+    const curveX = (Math.random() - 0.5) * shotType.curveIntensity;
+    const curveY = (Math.random() - 0.5) * shotType.curveIntensity;
+    const wobbleX = Math.random() * shotType.wobbleIntensity;
+    const wobbleY = Math.random() * shotType.wobbleIntensity;
+    const finalSpeed = speed * shotType.speedVariation;
 
     // Ejecutar tiro
     this.ball.shoot({
-      speed: speed,
+      speed: finalSpeed,
       direction: {
         x: dirX,
         y: dirY,
         z: dirZ,
       },
+      curve: {
+        x: curveX,
+        y: curveY,
+      },
+      wobble: {
+        x: wobbleX,
+        y: wobbleY,
+      },
       startPosition: {
         x: startX,
         y: startY,
-        z: this.ball.initialZ,
+        z: startZ,
       },
     });
   }
@@ -368,6 +414,18 @@ class Game {
     this.roundElement.textContent = `Round ${this.state.currentRound}`;
     this.currentShotElement.textContent = this.state.currentShot;
     this.totalShotsElement.textContent = this.state.totalShots;
+
+    // Añadir clases para destacar el equipo con ventaja
+    if (this.state.scores.home > this.state.scores.away) {
+      this.homeScore.classList.add("winning");
+      this.awayScore.classList.remove("winning");
+    } else if (this.state.scores.away > this.state.scores.home) {
+      this.awayScore.classList.add("winning");
+      this.homeScore.classList.remove("winning");
+    } else {
+      this.homeScore.classList.remove("winning");
+      this.awayScore.classList.remove("winning");
+    }
   }
 
   /**
@@ -378,8 +436,7 @@ class Game {
     this.gameOverScreen.classList.add("hidden");
   }
 }
-
 // Iniciar el juego cuando el DOM esté completamente cargado
-document.addEventListener("DOMContentLoaded", () => {
-  const game = new Game();
-});
+// document.addEventListener('DOMContentLoaded', () => {
+//     const game = new Game();
+// });

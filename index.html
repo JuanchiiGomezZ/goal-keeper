@@ -27,6 +27,8 @@
         <div id="game-area">
             <!-- El área donde se desarrollará el juego -->
             <div id="goal-area"></div>
+            <div id="goal-frame"></div>
+            <div id="goal-net"></div>
             <div id="ball"></div>
             <div id="goalkeeper">
                 <div id="left-hand" class="hand"></div>
@@ -52,6 +54,12 @@
     <script src="js/goalkeeper.js"></script>
     <script src="js/collision.js"></script>
     <script src="js/game.js"></script>
+    <script>
+        // Inicializar el juego cuando todos los scripts estén cargados
+        document.addEventListener('DOMContentLoaded', () => {
+            const game = new Game();
+        });
+    </script>
 </body>
 
 </html>

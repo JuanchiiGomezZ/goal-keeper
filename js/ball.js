@@ -22,7 +22,7 @@ class Ball {
     this.radius = this.element.offsetWidth / 2;
 
     // Posición inicial (desde donde se lanza el balón)
-    this.initialZ = -1000; // Profundidad inicial (lejos de la portería)
+    this.initialZ = -2000; // Profundidad inicial (lejos de la portería/cámara)
 
     // Gravedad (reducida para que el balón no caiga tan rápido)
     this.gravity = 0.05;
@@ -35,24 +35,50 @@ class Ball {
   shoot(options = {}) {
     // Valores por defecto del lanzamiento
     const defaults = {
-      speed: 25, // Velocidad base (aumentada para asegurar que llegue a la portería)
+      speed: 25, // Velocidad base
       direction: {
         // Dirección normalizada
         x: 0, // Componente horizontal (0 = centro)
-        y: -0.2, // Componente vertical (negativo para contrarrestar la gravedad)
-        z: 1, // Componente de profundidad (1 = hacia la portería)
+        y: 0, // Componente vertical
+        z: 1, // Componente de profundidad (1 = hacia la portería/cámara)
       },
-      spin: 0, // Efecto (curva)
+      curve: {
+        // Efecto de curva
+        x: (Math.random() - 0.5) * 0.3, // Curva horizontal (-0.15 a 0.15)
+        y: (Math.random() - 0.5) * 0.2, // Curva vertical (-0.1 a 0.1)
+      },
+      wobble: {
+        // Bamboleo aleatorio
+        x: Math.random() * 0.4, // Intensidad horizontal (0 a 0.4)
+        y: Math.random() * 0.4, // Intensidad vertical (0 a 0.4)
+      },
+      spin: Math.random() * 2 * Math.PI, // Ángulo inicial de rotación
       startPosition: {
         // Posición inicial
         x: this.gameArea.clientWidth / 2, // Centro horizontal
-        y: this.gameArea.clientHeight / 1.2, // Más abajo para simular un lanzamiento desde el suelo
-        z: this.initialZ, // Profundidad inicial
+        y: this.gameArea.clientHeight / 2, // Centro vertical
+        z: -2000, // Lejos de la portería (negativo porque viene hacia nosotros)
       },
     };
 
     // Combinar opciones por defecto con las proporcionadas
     const settings = { ...defaults, ...options };
+
+    // Asegurarse de que this.effect esté inicializado correctamente
+    if (!this.effect) {
+      this.effect = {
+        curve: { x: 0, y: 0 },
+        wobble: { x: 0, y: 0 },
+        spin: 0,
+        phase: 0,
+      };
+    }
+
+    // Asignar los efectos
+    this.effect.curve = settings.curve || { x: 0, y: 0 };
+    this.effect.wobble = settings.wobble || { x: 0, y: 0 };
+    this.effect.spin = settings.spin || 0;
+    this.effect.phase = 0;
 
     // Establecer posición inicial
     this.position = { ...settings.startPosition };
@@ -96,53 +122,62 @@ class Ball {
   update() {
     if (!this.isActive) return false;
 
-    // Aplicar velocidad a la posición
-    this.position.x += this.velocity.x;
-    this.position.y += this.velocity.y;
+    // Incrementar fase de efecto
+    this.effect.phase += 0.05;
+
+    // Aplicar efectos de curva (aumenta con el tiempo)
+    const curveFactorX =
+      this.effect.curve.x * (Math.abs(this.position.z) / 1000);
+    const curveFactorY =
+      this.effect.curve.y * (Math.abs(this.position.z) / 1000);
+
+    // Mayor efecto conforme se acerca
+    this.velocity.x += curveFactorX;
+    this.velocity.y += curveFactorY;
+
+    // Aplicar bamboleo aleatorio (efecto sinusoidal)
+    const wobbleX = Math.sin(this.effect.phase * 3) * this.effect.wobble.x;
+    const wobbleY = Math.cos(this.effect.phase * 2) * this.effect.wobble.y;
+
+    // Aplicar velocidad a la posición (incluyendo bamboleo)
+    this.position.x += this.velocity.x + wobbleX;
+    this.position.y += this.velocity.y + wobbleY;
     this.position.z += this.velocity.z;
 
-    // Aplicar gravedad a la velocidad vertical
-    this.velocity.y += this.gravity;
+    // Aplicar gravedad a la velocidad vertical (aumenta con la distancia)
+    const gravityFactor =
+      1 + (Math.abs(this.initialZ) - Math.abs(this.position.z)) / 2000;
+    this.velocity.y += this.gravity * gravityFactor;
 
-    // Verificar si el balón ha llegado a la portería (z = 0)
+    // Aplicar rotación visual al balón
+    this.effect.spin += 0.05;
+    this.element.style.transform = `translate(-50%, -50%) rotate(${
+      (this.effect.spin * 180) / Math.PI
+    }deg)`;
+
+    // Verificar si el balón ha pasado la línea de gol (z > 0)
     if (this.position.z >= 0) {
-      const goalPost = document.getElementById("goal-area");
-      const goalRect = goalPost.getBoundingClientRect();
-      const gameRect = this.gameArea.getBoundingClientRect();
-
-      // Convertir coordenadas absolutas a relativas al juego
-      const goalLeft = goalRect.left - gameRect.left;
-      const goalRight = goalRect.right - gameRect.left;
-      const goalTop = goalRect.top - gameRect.top;
-      const goalBottom = goalRect.bottom - gameRect.top;
-
-      // Verificar si el balón está dentro de los límites de la portería
-      if (
-        this.position.x >= goalLeft &&
-        this.position.x <= goalRight &&
-        this.position.y >= goalTop &&
-        this.position.y <= goalBottom
-      ) {
-        // Es gol si no ha sido atajado
-        if (!this.isSaved) {
-          this.isGoal = true;
-        }
+      // Si no ha sido atajado, es gol
+      if (!this.isSaved) {
+        this.isGoal = true;
       }
 
-      // El balón ya no está activo una vez que cruza la línea de gol
+      // El balón ya no está activo
       this.isActive = false;
       return false;
     }
 
-    // Si el balón sale de los límites laterales o superiores/inferiores
+    // Si el balón sale completamente de los límites laterales o superiores/inferiores
+    // sumando un margen para que no desaparezca demasiado pronto
     const gameWidth = this.gameArea.clientWidth;
     const gameHeight = this.gameArea.clientHeight;
+    const margin = 100; // margen para que no desaparezca de inmediato
 
     if (
-      this.position.x < -this.radius ||
-      this.position.x > gameWidth + this.radius ||
-      this.position.y < -this.radius ||
-      this.position.y > gameHeight + this.radius
+      this.position.x < -this.radius - margin ||
+      this.position.x > gameWidth + this.radius + margin ||
+      this.position.y < -this.radius - margin ||
+      this.position.y > gameHeight + this.radius + margin
     ) {
       this.isActive = false;
       return false;
@@ -166,10 +201,15 @@ class Ball {
     this.element.style.display = "block";
 
     // Calcular tamaño basado en profundidad (efecto perspectiva)
-    // Cuanto más cerca, más grande
-    const distance = Math.abs(this.position.z);
-    const scale = 1 + (this.initialZ - distance) / this.initialZ;
-    const size = 40 * scale; // 40px es el tamaño base
+    // Cuanto más cerca (z más grande), más grande se ve el balón
+    const maxSize = 150; // Tamaño máximo que puede tener el balón
+    const minSize = 20; // Tamaño mínimo (cuando está lejos)
+    const distanceRange = Math.abs(this.initialZ); // Rango total de distancia
+
+    // Calcular tamaño según distancia - relación no lineal para efecto más dramático
+    const normalizedDist = 1 - Math.abs(this.position.z) / distanceRange;
+    const size =
+      minSize + normalizedDist * normalizedDist * (maxSize - minSize);
 
     // Actualizar posición y tamaño
     this.element.style.left = `${this.position.x}px`;
@@ -191,13 +231,27 @@ class Ball {
     // Marcar como atajado
     this.isSaved = true;
 
-    // Invertir dirección Z (rebote)
-    this.velocity.z *= -0.5;
+    // Crear un efecto visual de "rebote" más marcado
+
+    // Invertir dirección Z (rebote) y hacerlo más dramático
+    this.velocity.z *= -1.2;
 
     // Modificar dirección X e Y según punto de contacto
     // Esto simula el efecto de desvío según dónde impacta en la mano
-    this.velocity.x = (Math.random() - 0.5) * 10;
-    this.velocity.y = -5 - Math.random() * 5; // Impulso hacia arriba
+    const deflectionStrength = 15; // Mayor fuerza de desvío
+    this.velocity.x = (Math.random() - 0.5) * deflectionStrength;
+    this.velocity.y = (Math.random() - 0.5) * deflectionStrength;
+
+    // Añadir un pequeño giro (rotación del balón) - visual únicamente
+    this.element.style.transition = "transform 0.2s";
+    this.element.style.transform = `translate(-50%, -50%) rotate(${
+      Math.random() * 360
+    }deg)`;
+
+    // Después de un tiempo, quitar la transición
+    setTimeout(() => {
+      this.element.style.transition = "";
+    }, 200);
   }
 
   /**

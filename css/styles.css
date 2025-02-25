@@ -1,4 +1,7 @@
-/* Reset y estilos generales */
+.winning {
+  color: #ffff00;
+  text-shadow: 0 0 5px rgba(255, 255, 0, 0.7);
+} /* Reset y estilos generales */
 * {
   margin: 0;
   padding: 0;
@@ -32,18 +35,67 @@ body {
 }
 
 #scoreboard {
-  font-size: 24px;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 5px;
+  padding: 10px 15px;
+  font-size: 22px;
   font-weight: bold;
+  display: flex;
+  align-items: center;
+  color: white;
+  z-index: 100;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  font-family: "Arial", sans-serif;
+}
+
+#home-team,
+#away-team {
+  min-width: 70px;
+  text-align: center;
+}
+
+#home-score,
+#away-score {
+  min-width: 30px;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 2px 8px;
+  margin: 0 5px;
+  border-radius: 3px;
 }
 
 .separator {
-  margin: 0 10px;
+  margin: 0 5px;
+  color: #ccc;
 }
 
 #round-info {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 5px;
+  padding: 10px 15px;
+  font-size: 18px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  color: white;
+  z-index: 100;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  font-family: "Arial", sans-serif;
+}
+
+#round {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+#shots {
+  font-size: 16px;
 }
 
 /* Área de juego */
@@ -51,32 +103,52 @@ body {
   width: 100%;
   height: 100%;
   position: relative;
-  background: linear-gradient(
-    0deg,
-    #4a8f29 0%,
-    #5da934 100%
-  ); /* Color de campo */
-  background-image: url("https://i.imgur.com/Ly57uG6.jpeg");
+  background-image: url("https://ideogram.ai/assets/image/lossless/response/wjjwwFdgQA68WwV6aC07Og");
   background-size: cover;
   background-position: center;
   perspective: 1000px;
   overflow: hidden;
 }
 
+/* Portería vista desde dentro */
 #goal-area {
   position: absolute;
-  width: 70%;
-  height: 40%;
-  top: 5%;
-  left: 15%;
-  background-color: rgba(0, 0, 0, 0.1);
-  border: 5px solid white;
-  border-top: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
   z-index: 1;
-  background-image: url("https://i.imgur.com/sQ0hFyW.png");
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
+  /* Eliminar borde y fondo ya que ahora estamos dentro del arco */
+  border: none;
+  background-color: transparent;
+  background-image: none;
+}
+
+/* Añadir marco del arco alrededor del viewport */
+#goal-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 15px solid white;
+  box-sizing: border-box;
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* Añadir red del arco para dar efecto visual */
+#goal-net {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* background-image: url("https://i.imgur.com/sQ0hFyW.png"); */
+  background-size: 100px 100px;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* Balón */
@@ -84,12 +156,11 @@ body {
   position: absolute;
   width: 40px;
   height: 40px;
-  background-color: white;
+  background-color: transparent;
   border-radius: 50%;
   z-index: 10;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  background-image: url("https://i.imgur.com/uyy9Uiv.png");
+  background-image: url("https://static.vecteezy.com/system/resources/previews/013/362/736/non_2x/football-soccer-transparent-free-png.png");
   background-size: contain;
   background-position: center;
   display: none; /* Inicialmente oculto */
@@ -108,28 +179,26 @@ body {
 
 .hand {
   position: absolute;
-  width: 60px;
-  height: 80px;
-  background-color: white;
-  border: 2px solid black;
-  border-radius: 15px;
+  width: 100px;
+  height: 120px;
+  background-color: transparent;
+  border: none;
   z-index: 15;
-  transform: translate(-50%, -50%);
-  background-image: url("https://i.imgur.com/uY5vK8j.png");
+  background-image: url("https://www.lacasadelgolero.com/cdn/shop/files/GuantesdePorteroEliteRevolutionIICombiBlack2023Dorso.png?v=1728335121&width=533");
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
+  bottom: 20px; /* Posicionamos en la parte inferior */
+  transform: none; /* Eliminamos la transformación anterior */
 }
 
 #left-hand {
-  left: 30%;
-  bottom: 30%;
-  transform: translate(-50%, -50%) scaleX(-1); /* Espejo para la mano izquierda */
+  left: calc(50% - 120px); /* A la izquierda del centro */
+  transform: scaleX(-1); /* Espejo para la mano izquierda */
 }
 
 #right-hand {
-  right: 30%;
-  bottom: 30%;
+  left: calc(50% + 20px); /* A la derecha del centro */
 }
 
 /* Menús */

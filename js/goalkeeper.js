@@ -45,6 +45,9 @@ class Goalkeeper {
       this.updateHandPositions({ x: mouseX, y: mouseY });
     });
 
+    // Ocultar cursor original
+    this.gameArea.style.cursor = "none";
+
     // Mantener el ratón dentro del área de juego
     document.addEventListener("mouseleave", () => {
       // Si el ratón sale del documento, mantener las manos en su última posición válida
@@ -59,34 +62,40 @@ class Goalkeeper {
     const gameWidth = this.gameArea.clientWidth;
     const gameHeight = this.gameArea.clientHeight;
 
-    // Calcular límites absolutos
-    const limitsAbs = {
-      minX: gameWidth * this.limits.minX,
-      maxX: gameWidth * this.limits.maxX,
-      minY: gameHeight * this.limits.minY,
-      maxY: gameHeight * this.limits.maxY,
+    // Límites para que las manos no salgan de la pantalla
+    const handWidth = 100; // Ancho aproximado de la mano
+    const handHeight = 120; // Altura aproximada de la mano
+
+    // Limitar el movimiento horizontal
+    const minX = handWidth / 2;
+    const maxX = gameWidth - handWidth / 2;
+    const limitedX = Math.max(minX, Math.min(maxX, mousePos.x));
+
+    // Limitar el movimiento vertical (permitir casi toda la pantalla)
+    const minY = handHeight / 2; // Permitir subir casi hasta el borde superior
+    const maxY = gameHeight - handHeight / 2;
+    const limitedY = Math.max(minY, Math.min(maxY, mousePos.y));
+
+    // Calcular posición de ambas manos juntas (centradas en el cursor)
+    const handsCenter = limitedX;
+
+    // Actualizar posición del elemento DOM directamente (sin transform)
+    this.leftHand.style.left = `${handsCenter - 120}px`; // Desplazamiento para la mano izquierda
+    this.leftHand.style.top = `${limitedY - 60}px`;
+
+    this.rightHand.style.left = `${handsCenter + 20}px`; // Desplazamiento para la mano derecha
+    this.rightHand.style.top = `${limitedY - 60}px`;
+
+    // Actualizar posiciones almacenadas (para colisiones)
+    this.leftHandPos = {
+      x: handsCenter - 120 + handWidth / 2,
+      y: limitedY - 60 + handHeight / 2,
     };
 
-    // Limitar posición del ratón al área permitida
-    const limitedX = Math.max(
-      limitsAbs.minX,
-      Math.min(limitsAbs.maxX, mousePos.x)
-    );
-    const limitedY = Math.max(
-      limitsAbs.minY,
-      Math.min(limitsAbs.maxY, mousePos.y)
-    );
-
-    // Actualizar posiciones de ambas manos juntas
-    // Ambas manos siguen al ratón directamente (están unidas)
-    this.leftHandPos = { x: limitedX - 30, y: limitedY }; // Ligeramente a la izquierda del cursor
-    this.rightHandPos = { x: limitedX + 30, y: limitedY }; // Ligeramente a la derecha del cursor
-
-    // Actualizar posición visual de las manos
-    this.leftHand.style.left = `${this.leftHandPos.x}px`;
-    this.leftHand.style.top = `${this.leftHandPos.y}px`;
-    this.rightHand.style.left = `${this.rightHandPos.x}px`;
-    this.rightHand.style.top = `${this.rightHandPos.y}px`;
+    this.rightHandPos = {
+      x: handsCenter + 20 + handWidth / 2,
+      y: limitedY - 60 + handHeight / 2,
+    };
   }
 
   /**
