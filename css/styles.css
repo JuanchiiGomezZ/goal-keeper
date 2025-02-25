@@ -1,0 +1,175 @@
+/* Reset y estilos generales */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #222;
+  color: white;
+  overflow: hidden;
+  cursor: none; /* Ocultamos el cursor para una experiencia más inmersiva */
+}
+
+.game-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+/* Interfaz de usuario */
+#game-ui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  z-index: 100;
+}
+
+#scoreboard {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.separator {
+  margin: 0 10px;
+}
+
+#round-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Área de juego */
+#game-area {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: linear-gradient(
+    0deg,
+    #4a8f29 0%,
+    #5da934 100%
+  ); /* Color de campo */
+  background-image: url("https://i.imgur.com/Ly57uG6.jpeg");
+  background-size: cover;
+  background-position: center;
+  perspective: 1000px;
+  overflow: hidden;
+}
+
+#goal-area {
+  position: absolute;
+  width: 70%;
+  height: 40%;
+  top: 5%;
+  left: 15%;
+  background-color: rgba(0, 0, 0, 0.1);
+  border: 5px solid white;
+  border-top: none;
+  z-index: 1;
+  background-image: url("https://i.imgur.com/sQ0hFyW.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Balón */
+#ball {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  border-radius: 50%;
+  z-index: 10;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  background-image: url("https://i.imgur.com/uyy9Uiv.png");
+  background-size: contain;
+  background-position: center;
+  display: none; /* Inicialmente oculto */
+}
+
+/* Portero (manos) */
+#goalkeeper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none; /* Para que no interfiera con el cursor */
+}
+
+.hand {
+  position: absolute;
+  width: 60px;
+  height: 80px;
+  background-color: white;
+  border: 2px solid black;
+  border-radius: 15px;
+  z-index: 15;
+  transform: translate(-50%, -50%);
+  background-image: url("https://i.imgur.com/uY5vK8j.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+#left-hand {
+  left: 30%;
+  bottom: 30%;
+  transform: translate(-50%, -50%) scaleX(-1); /* Espejo para la mano izquierda */
+}
+
+#right-hand {
+  right: 30%;
+  bottom: 30%;
+}
+
+/* Menús */
+#game-menu,
+#game-over {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+}
+
+.hidden {
+  display: none !important;
+}
+
+button {
+  margin: 10px;
+  padding: 15px 30px;
+  font-size: 18px;
+  background-color: #4a8f29;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #5da934;
+}
+
+h1,
+h2 {
+  margin-bottom: 30px;
+  color: white;
+}

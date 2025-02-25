@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goalkeeper Challenge</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="game-container">
+        <div id="game-ui">
+            <div id="scoreboard">
+                <span id="home-team">Home</span>
+                <span id="home-score">0</span>
+                <span class="separator">-</span>
+                <span id="away-score">0</span>
+                <span id="away-team">Away</span>
+            </div>
+            <div id="round-info">
+                <span id="round">Round 1</span>
+                <span id="shots">Shot: <span id="current-shot">1</span>/<span id="total-shots">9</span></span>
+            </div>
+        </div>
+
+        <div id="game-area">
+            <!-- El área donde se desarrollará el juego -->
+            <div id="goal-area"></div>
+            <div id="ball"></div>
+            <div id="goalkeeper">
+                <div id="left-hand" class="hand"></div>
+                <div id="right-hand" class="hand"></div>
+            </div>
+        </div>
+
+        <div id="game-menu" class="hidden">
+            <h1>Goalkeeper Challenge</h1>
+            <button id="start-game">Start Game</button>
+            <button id="instructions">Instructions</button>
+        </div>
+
+        <div id="game-over" class="hidden">
+            <h2>Game Over</h2>
+            <div id="final-score"></div>
+            <button id="restart-game">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/ball.js"></script>
+    <script src="js/goalkeeper.js"></script>
+    <script src="js/collision.js"></script>
+    <script src="js/game.js"></script>
+</body>
+
+</html>
