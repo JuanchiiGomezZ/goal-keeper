@@ -9,9 +9,15 @@ class Goalkeeper {
     this.rightHand = document.getElementById("right-hand");
     this.gameArea = document.getElementById("game-area");
 
-    // Posiciones de las manos
+    // Posiciones actuales de las manos
     this.leftHandPos = { x: 0, y: 0 };
     this.rightHandPos = { x: 0, y: 0 };
+
+    // Posiciones objetivo (donde debería ir el cursor)
+    this.targetPos = { x: 0, y: 0 };
+
+    // Factor de velocidad (valor menor = movimiento más lento)
+    this.movementSpeed = 0.08;
 
     // Límites de movimiento (porcentaje del área de juego)
     this.limits = {
@@ -25,77 +31,94 @@ class Goalkeeper {
     this.initEvents();
 
     // Establecer posiciones iniciales
-    this.updateHandPositions({
-      x: this.gameArea.clientWidth / 2,
-      y: this.gameArea.clientHeight / 2,
-    });
+    const initialX = this.gameArea.clientWidth / 2;
+    const initialY = this.gameArea.clientHeight / 2;
+    this.targetPos = { x: initialX, y: initialY };
+
+    // Iniciar bucle de actualización
+    this.updateInterval = setInterval(() => this.updateHandPositions(), 16);
   }
 
   /**
    * Inicializa los eventos del ratón
    */
   initEvents() {
-    // Actualizar posición de manos con el movimiento del ratón
+    // Actualizar posición objetivo con el movimiento del ratón
     this.gameArea.addEventListener("mousemove", (e) => {
       // Obtener posición relativa al área de juego
       const rect = this.gameArea.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      this.updateHandPositions({ x: mouseX, y: mouseY });
+      this.targetPos.x = e.clientX - rect.left;
+      this.targetPos.y = e.clientY - rect.top;
     });
 
     // Ocultar cursor original
     this.gameArea.style.cursor = "none";
-
-    // Mantener el ratón dentro del área de juego
-    document.addEventListener("mouseleave", () => {
-      // Si el ratón sale del documento, mantener las manos en su última posición válida
-    });
   }
 
   /**
-   * Actualiza la posición de las manos según la posición del ratón
-   * @param {Object} mousePos - Posición del ratón { x, y }
+   * Actualiza la posición de las manos con movimiento suavizado
    */
-  updateHandPositions(mousePos) {
+  updateHandPositions() {
     const gameWidth = this.gameArea.clientWidth;
     const gameHeight = this.gameArea.clientHeight;
 
-    // Límites para que las manos no salgan de la pantalla
-    const handWidth = 100; // Ancho aproximado de la mano
-    const handHeight = 120; // Altura aproximada de la mano
+    // Dimensiones de las manos
+    const handWidth = 100;
+    const handHeight = 120;
 
-    // Limitar el movimiento horizontal
+    // Limitar posición objetivo dentro de los límites de la pantalla
     const minX = handWidth / 2;
     const maxX = gameWidth - handWidth / 2;
-    const limitedX = Math.max(minX, Math.min(maxX, mousePos.x));
-
-    // Limitar el movimiento vertical (permitir casi toda la pantalla)
-    const minY = handHeight / 2; // Permitir subir casi hasta el borde superior
+    const minY = handHeight / 2;
     const maxY = gameHeight - handHeight / 2;
-    const limitedY = Math.max(minY, Math.min(maxY, mousePos.y));
 
-    // Calcular posición de ambas manos juntas (centradas en el cursor)
-    const handsCenter = limitedX;
+    const limitedX = Math.max(minX, Math.min(maxX, this.targetPos.x));
+    const limitedY = Math.max(minY, Math.min(maxY, this.targetPos.y));
 
-    // Actualizar posición del elemento DOM directamente (sin transform)
-    this.leftHand.style.left = `${handsCenter - 120}px`; // Desplazamiento para la mano izquierda
-    this.leftHand.style.top = `${limitedY - 60}px`;
+    // Calcular nueva posición con movimiento suavizado
+    const currentX = limitedX;
+    const currentY = limitedY;
 
-    this.rightHand.style.left = `${handsCenter + 20}px`; // Desplazamiento para la mano derecha
-    this.rightHand.style.top = `${limitedY - 60}px`;
+    // Suavizado de movimiento con interpolación lineal
+    this.leftHandPos.x +=
+      (currentX - 120 - (this.leftHandPos.x - handWidth / 2)) *
+      this.movementSpeed;
+    this.leftHandPos.y +=
+      (currentY - 60 - (this.leftHandPos.y - handHeight / 2)) *
+      this.movementSpeed;
 
-    // Actualizar posiciones almacenadas (para colisiones)
-    this.leftHandPos = {
-      x: handsCenter - 120 + handWidth / 2,
-      y: limitedY - 60 + handHeight / 2,
-    };
+    this.rightHandPos.x +=
+      (currentX + 20 - (this.rightHandPos.x - handWidth / 2)) *
+      this.movementSpeed;
+    this.rightHandPos.y +=
+      (currentY - 60 - (this.rightHandPos.y - handHeight / 2)) *
+      this.movementSpeed;
 
-    this.rightHandPos = {
-      x: handsCenter + 20 + handWidth / 2,
-      y: limitedY - 60 + handHeight / 2,
-    };
+    // Actualizar posición visual de las manos
+    this.leftHand.style.left = `${this.leftHandPos.x}px`;
+    this.leftHand.style.top = `${this.leftHandPos.y}px`;
+
+    this.rightHand.style.left = `${this.rightHandPos.x}px`;
+    this.rightHand.style.top = `${this.rightHandPos.y}px`;
+  }
+
+  /**
+   * Detiene el bucle de actualización (para pausas)
+   */
+  stopUpdateLoop() {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+  }
+
+  /**
+   * Reanuda el bucle de actualización
+   */
+  resumeUpdateLoop() {
+    if (!this.updateInterval) {
+      this.updateInterval = setInterval(() => this.updateHandPositions(), 16);
+    }
   }
 
   /**
@@ -105,14 +128,14 @@ class Goalkeeper {
   getHandsInfo() {
     return {
       leftHand: {
-        x: this.leftHandPos.x,
-        y: this.leftHandPos.y,
+        x: this.leftHandPos.x + 50, // Centrar para colisiones
+        y: this.leftHandPos.y + 60, // Centrar para colisiones
         width: this.leftHand.offsetWidth,
         height: this.leftHand.offsetHeight,
       },
       rightHand: {
-        x: this.rightHandPos.x,
-        y: this.rightHandPos.y,
+        x: this.rightHandPos.x + 50, // Centrar para colisiones
+        y: this.rightHandPos.y + 60, // Centrar para colisiones
         width: this.rightHand.offsetWidth,
         height: this.rightHand.offsetHeight,
       },

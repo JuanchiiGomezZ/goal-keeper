@@ -12,6 +12,10 @@ class Game {
     this.restartButton = document.getElementById("restart-game");
     this.scoreElement = document.getElementById("final-score");
 
+    //Botones de pausa y menu principal
+    this.pauseButton = document.getElementById("pause-button");
+    this.menuButton = document.getElementById("menu-button");
+
     // Marcadores
     this.homeScore = document.getElementById("home-score");
     this.awayScore = document.getElementById("away-score");
@@ -28,7 +32,7 @@ class Game {
 
     // Configuración del juego
     this.config = {
-      shotsPerRound: 9,
+      shotsPerRound: 4,
       maxRounds: 3,
       timeBetweenShots: 3000, // 3 segundos
       initialDifficulty: 0.5,
@@ -84,6 +88,18 @@ class Game {
           this.resumeGame();
         }
       }
+    });
+
+    this.pauseButton.addEventListener("click", () => {
+      if (this.state.isPlaying) {
+        this.pauseGame();
+      } else {
+        this.resumeGame();
+      }
+    });
+
+    this.menuButton.addEventListener("click", () => {
+      this.backToMainMenu();
     });
   }
 
@@ -267,6 +283,10 @@ class Game {
     this.state.currentShot = 0;
     this.state.difficulty += this.config.difficultyIncrement;
 
+    // Ralentizar más los guantes según aumenta la dificultad
+    // 0.15 en ronda 1, 0.1 en ronda 2, 0.05 en ronda 3
+    this.goalkeeper.movementSpeed = 0.2 - this.state.difficulty * 0.1;
+
     // Actualizar UI
     this.updateUI();
 
@@ -434,6 +454,18 @@ class Game {
   showMenu() {
     this.gameMenu.classList.remove("hidden");
     this.gameOverScreen.classList.add("hidden");
+  }
+
+  backToMainMenu() {
+    // Detener timers
+    clearInterval(this.gameLoop);
+    clearTimeout(this.shootTimer);
+
+    // Reiniciar estado
+    this.resetGame();
+
+    // Mostrar menú principal
+    this.showMenu();
   }
 }
 // Iniciar el juego cuando el DOM esté completamente cargado

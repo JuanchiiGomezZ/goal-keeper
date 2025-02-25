@@ -242,3 +242,33 @@ h2 {
   margin-bottom: 30px;
   color: white;
 }
+
+/* Añadir al final del archivo */
+#game-controls {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  gap: 10px;
+}
+
+#game-controls button {
+  width: 40px;
+  height: 40px;
+  padding: 5px;
+  font-size: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border: 2px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.3s;
+}
+
+#game-controls button:hover {
+  background-color: rgba(74, 143, 41, 0.9);
+}
