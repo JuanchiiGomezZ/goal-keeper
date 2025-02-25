@@ -32,7 +32,7 @@ class Game {
 
     // Configuración del juego
     this.config = {
-      shotsPerRound: 4,
+      shotsPerRound: 3,
       maxRounds: 3,
       timeBetweenShots: 3000, // 3 segundos
       initialDifficulty: 0.7,
@@ -363,7 +363,7 @@ class Game {
     this.ball.reset();
 
     // Calcular parámetros del tiro según dificultad
-    const speed = 15 + this.state.difficulty * 15; // Velocidad base entre 15 y 35
+    const speed = 15 + this.state.difficulty * 12; // Velocidad base entre 15 y 35
 
     // Dimensiones del área de juego
     const gameWidth = this.gameArea.clientWidth;
